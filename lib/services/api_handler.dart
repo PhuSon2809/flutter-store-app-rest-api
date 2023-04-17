@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math';
 
 // ignore: depend_on_referenced_packages
 import 'package:http/http.dart' as http;
@@ -10,37 +11,64 @@ import 'package:store_app/model/users_model.dart';
 class APIHandler {
   static Future<List<dynamic>> getAllDatas({
     required String target,
+    String? limit,
   }) async {
-    var uri = Uri.https(BASE_URL, "api/v1/$target");
-    var response = await http.get(uri); //trả về json
+    try {
+      var uri = Uri.https(
+          BASE_URL,
+          "api/v1/$target",
+          target == 'products'
+              ? {
+                  "offset": "0",
+                  "limit": limit,
+                }
+              : {});
+      var response = await http.get(uri); //trả về json
 
-    //jsonDecode để parse chuối JSON thành một đối tượng Dart tương ứng
-    var listDatas = jsonDecode(response.body);
+      //jsonDecode để parse chuối JSON thành một đối tượng Dart tương ứng
+      var listDatas = jsonDecode(response.body);
 
-    List tempList = [];
+      List tempList = [];
+      if (response.statusCode != 200) {
+        throw listDatas['message'];
+      }
 
-    for (var data in listDatas) {
-      tempList.add(data);
+      for (var data in listDatas) {
+        tempList.add(data);
+      }
+
+      return tempList;
+    } catch (e) {
+      log("An error occurred $e" as num);
+      throw e.toString();
     }
-
-    return tempList;
   }
 
-  static Future<List<ProductsModel>> getAllProducts() async {
-    List temp = await getAllDatas(target: "products");
+  static Future<List<ProductsModel>> getAllProducts({
+    required String limit,
+  }) async {
+    List temp = await getAllDatas(target: "products", limit: limit);
     return ProductsModel.productsFromSnapshot(temp);
   }
 
   static Future<ProductsModel> getProductDetail({
     required String id,
   }) async {
-    var uri = Uri.https(BASE_URL, "api/v1/products/$id");
-    var response = await http.get(uri); //trả về json
+    try {
+      var uri = Uri.https(BASE_URL, "api/v1/products/$id");
+      var response = await http.get(uri); //trả về json
 
-    //jsonDecode để parse chuối JSON thành một đối tượng Dart tương ứng
-    var data = jsonDecode(response.body);
+      //jsonDecode để parse chuối JSON thành một đối tượng Dart tương ứng
+      var data = jsonDecode(response.body);
+      if (response.statusCode != 200) {
+        throw data['message'];
+      }
 
-    return ProductsModel.fromJson(data);
+      return ProductsModel.fromJson(data);
+    } catch (e) {
+      log("An error occurred while getting product infor $e" as num);
+      throw e.toString();
+    }
   }
 
   static Future<List<CategoriesModel>> getAllCategories() async {
